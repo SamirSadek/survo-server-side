@@ -39,6 +39,12 @@ async function run() {
         const result = await userCollection.find().toArray()
         res.send(result)
     })
+    // app.get('/user', async (req, res) => {
+    //   const user = req.body
+    //   const query = {email: user.email}
+    //   const result = await userCollection.find(query).toArray();
+    //   res.send(result)
+    // })
     app.post('/users', async(req, res) =>{
         const user = req.body
 
@@ -50,15 +56,57 @@ async function run() {
         const result = await userCollection.insertOne(user)
         res.send(result)
     })
+    app.put("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateRole = req.body;
+      console.log(updateRole);
+      const updatedDoc = {
+        $set: {
+          role: updateRole.role,
+        },
+      };
+      const result = await userCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
 
     app.get('/surveys', async(req,res) =>{
         const result = await surveyCollection.find().toArray()
         res.send(result)
     })
-    app.delete('/user/:id', async(req, res) =>{
+    app.post('/surveys', async(req, res)=>{
+            const item = req.body
+            const result = await surveyCollection.insertOne(item)
+            res.send(result)
+    })
+    app.patch('/surveys/:id', async(req, res)=>{
+      const item = req.body
+      const id = req.params.id
+      const filter = {_id: new ObjectId(id)}
+      const updatedDoc = {
+        $set: {
+          title: item.title,
+          category: item.category,
+          options: item.options,
+          description: item.description,
+        }
+      }
+      const result = await surveyCollection.updateOne(filter, updatedDoc)
+      res.send(result)
+
+
+
+    })
+    app.get('/surveys/:id', async(req, res) =>{
+      const id = req.params.id
+      const query = {_id: new ObjectId(id)}
+      const result = await surveyCollection.findOne(query)
+      res.send(result)
+  })
+    app.delete('/surveys/:id', async(req, res) =>{
         const id = req.params.id
         const query = {_id: new ObjectId(id)}
-        const result = await userCollection.deleteOne(query)
+        const result = await surveyCollection.deleteOne(query)
         res.send(result)
     })
 
@@ -78,6 +126,6 @@ app.get('/',(req,res) =>{
 })
 
 app.listen(port, () =>{
-    console.log(`Bistro boss is sitting on port ${port}`)
+    console.log(`Server is running on port ${port}`)
 })
 

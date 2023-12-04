@@ -32,6 +32,7 @@ async function run() {
     const surveyCollection = client.db("survoDB").collection("surveys");
     const userCollection = client.db("survoDB").collection("users");
     const paymentCollection = client.db("survoDB").collection("payments");
+    const feedbackCollection = client.db("survoDB").collection("feedbacks");
 
     // users
     app.get("/users", async (req, res) => {
@@ -147,6 +148,16 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await surveyCollection.deleteOne(query);
+      res.send(result);
+    });
+    // userFeedBacks
+    app.post("/feedbacks", async (req, res) => {
+      const item = req.body;
+      const result = await feedbackCollection.insertOne(item);
+      res.send(result);
+    });
+    app.get("/feedbacks", async (req, res) => {
+      const result = await feedbackCollection.find().toArray();
       res.send(result);
     });
     // payment intent

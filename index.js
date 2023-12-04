@@ -1,4 +1,5 @@
 const express = require("express");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
@@ -68,6 +69,40 @@ async function run() {
       res.send(result);
     });
 
+    // jwt
+
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
+
+    // middleware
+    const verifyToken= (req, res, next) =>{
+      console.log(req.headers)
+      next()
+
+    }
+
+    // surveys
+    app.put("/surveys/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const update = req.body;
+      console.log(update);
+      const updatedDoc = {
+        $set: {
+          like: update.like,
+          dislike: update.dislike,
+          vote: update.vote,
+        },
+      };
+      const result = await surveyCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
     app.get("/surveys", async (req, res) => {
       const result = await surveyCollection.find().toArray();
       res.send(result);
@@ -118,29 +153,48 @@ async function run() {
 
     app.post("/create-payment-intent", async (req, res) => {
       const { price } = req.body;
-      const amount = parseInt(price * 100)
+      const amount = parseInt(price * 100);
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
-        currency: 'usd',
-        payment_method_types: ['card']
-      })
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
       res.send({
-        clientSecret: paymentIntent.client_secret
-      })
+        clientSecret: paymentIntent.client_secret,
+      });
     });
 
-    app.get('/payments', async(req, res) =>{
-      const result = await paymentCollection.find().toArray()
-      res.send(result)
-    })
+    app.get("/payments", async (req, res) => {
+      const result = await paymentCollection.find().toArray();
+      res.send(result);
+    });
 
-    app.post('/payments', async(req, res) =>{
-      const payment = req.body
-      const paymentResult = await paymentCollection.insertOne(payment)
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      const paymentResult = await paymentCollection.insertOne(payment);
 
-      console.log('payment info', payment)
-      res.send(paymentResult)
-    })
+      console.log("payment info", payment);
+      res.send(paymentResult);
+    });
+    // stats or analytics
+    app.get("/admin-stats", async (req, res) => {
+      const users = await userCollection.estimatedDocumentCount();
+      const surveys = await surveyCollection.estimatedDocumentCount();
+      const proUser = await paymentCollection.estimatedDocumentCount();
+
+      const payments = await paymentCollection.find().toArray();
+      const revenue = payments.reduce(
+        (total, payment) => total + payment.price,
+        0
+      );
+
+      res.send({
+        users,
+        surveys,
+        proUser,
+        revenue,
+      });
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
